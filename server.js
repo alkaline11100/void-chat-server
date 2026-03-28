@@ -1,5 +1,6 @@
 const express = require("express");
 const path = require("path");
+const fs = require("fs");
 const admin = require("firebase-admin");
 const app = express();
 
@@ -16,9 +17,12 @@ const db = admin.database();
 // ── ADMIN PASSWORD ──
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "v0id-4dm1n-k3y-9x2";
 
+// find views folder regardless of case
+var viewsDir = fs.existsSync(path.join(__dirname, "views")) ? path.join(__dirname, "views") : path.join(__dirname, "Views");
+
 // ── SERVE MAIN SITE ──
 app.get("/", function(req, res) {
-  res.sendFile(path.join(__dirname, "views", "index.html"));
+  res.sendFile(path.join(viewsDir, "index.html"));
 });
 
 // ── ADMIN LOGIN ──
@@ -99,7 +103,7 @@ app.get("/admin/bans", function(req, res) {
 
 // ── SERVE ADMIN PAGE ──
 app.get("/admin", function(req, res) {
-  res.sendFile(path.join(__dirname, "views", "admin.html"));
+  res.sendFile(path.join(viewsDir, "admin.html"));
 });
 
 const PORT = process.env.PORT || 3000;
