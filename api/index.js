@@ -1,11 +1,11 @@
 const express = require("express");
 const path = require("path");
+const fs = require("fs");
 const admin = require("firebase-admin");
 const app = express();
 
 app.use(express.json());
 
-// Firebase
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
@@ -16,23 +16,22 @@ const db = admin.database();
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "v0id-4dm1n-k3y-9x2";
 
-// serve main site
-app.get("/", function(req, res) {
-  res.sendFile(path.join(__dirname, "..", "Views", "index.html"));
-});
+// find views folder regardless of case
+function getView(name) {
+  var base = path.join(__dirname, "..");
+  var lower = path.join(base, "views", name);
+  var upper = path.join(base, "Views", name);
+  return fs.existsSync(lower) ? lower : upper;
+}
 
-// serve admin page
-app.get("/admin", function(req, res) {
-  res.sendFile(path.join(__dirname, "..", "Views", "admin.html"));
-});
+app.get("/", function(req, res) { res.sendFile(getView("index.html")); });
+app.get("/admin", function(req, res) { res.sendFile(getView("admin.html")); });
 
-// admin login
 app.post("/admin/login", function(req, res) {
   if (req.body.password === ADMIN_PASSWORD) res.json({ ok: true });
   else res.status(401).json({ ok: false });
 });
 
-// submit report
 app.post("/report", function(req, res) {
   var data = req.body;
   if (!data.reportedUid || !data.message) return res.status(400).json({ error: "missing fields" });
@@ -48,7 +47,6 @@ app.post("/report", function(req, res) {
   }).then(function() { res.json({ ok: true }); });
 });
 
-// get reports
 app.get("/admin/reports", function(req, res) {
   if (req.headers["x-admin-key"] !== ADMIN_PASSWORD) return res.status(401).json({ error: "unauthorized" });
   db.ref("reports").orderByChild("ts").once("value").then(function(snap) {
@@ -59,13 +57,11 @@ app.get("/admin/reports", function(req, res) {
   });
 });
 
-// ignore report
 app.post("/admin/ignore/:id", function(req, res) {
   if (req.headers["x-admin-key"] !== ADMIN_PASSWORD) return res.status(401).json({ error: "unauthorized" });
   db.ref("reports/" + req.params.id).update({ status: "ignored" }).then(function() { res.json({ ok: true }); });
 });
 
-// ban user
 app.post("/admin/ban/:uid", function(req, res) {
   if (req.headers["x-admin-key"] !== ADMIN_PASSWORD) return res.status(401).json({ error: "unauthorized" });
   var uid = req.params.uid;
@@ -75,13 +71,11 @@ app.post("/admin/ban/:uid", function(req, res) {
   }).then(function() { res.json({ ok: true }); });
 });
 
-// unban user
 app.post("/admin/unban/:uid", function(req, res) {
   if (req.headers["x-admin-key"] !== ADMIN_PASSWORD) return res.status(401).json({ error: "unauthorized" });
   db.ref("bans/" + req.params.uid).remove().then(function() { res.json({ ok: true }); });
 });
 
-// get bans
 app.get("/admin/bans", function(req, res) {
   if (req.headers["x-admin-key"] !== ADMIN_PASSWORD) return res.status(401).json({ error: "unauthorized" });
   db.ref("bans").once("value").then(function(snap) { res.json(snap.exists() ? snap.val() : {}); });
