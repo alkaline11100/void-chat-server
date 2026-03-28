@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>void // admin</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Space+Mono:wght@400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#020005;color:#e0d0ff;font-family:'Space Mono',monospace;min-height:100vh;padding:0;}
+h1{font-family:'VT323',monospace;font-size:2.5rem;color:#ff00ff;text-shadow:0 0 20px #ff00ff;letter-spacing:3px;}
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;}
+.login-box{border:1px solid #7b2fff;border-radius:10px;padding:40px;background:rgba(10,0,20,.97);text-align:center;max-width:360px;width:100%;}
+.login-box h1{margin-bottom:8px;}
+.login-box p{font-size:.7rem;color:#6a4a9a;margin-bottom:24px;}
+input[type=password]{width:100%;background:rgba(10,0,20,.85);color:#e0d0ff;border:1px solid #7b2fff;padding:10px 14px;font-family:'Space Mono',monospace;font-size:.85rem;border-radius:6px;outline:none;margin-bottom:12px;}
+input[type=password]:focus{border-color:#ff00ff;}
+button{padding:10px 28px;font-family:'VT323',monospace;font-size:1.3rem;letter-spacing:2px;cursor:pointer;border-radius:6px;border:2px solid #7b2fff;background:rgba(123,47,255,.2);color:#e0d0ff;transition:all .2s;}
+button:hover{background:#7b2fff;color:#fff;}
+button.ban{border-color:#ff3a3a;color:#ff3a3a;background:rgba(255,58,58,.1);font-size:1rem;padding:6px 16px;}
+button.ban:hover{background:#ff3a3a;color:#fff;}
+button.ignore{border-color:#00ffcc;color:#00ffcc;background:rgba(0,255,204,.08);font-size:1rem;padding:6px 16px;}
+button.ignore:hover{background:#00ffcc;color:#000;}
+button.unban{border-color:#ffaa00;color:#ffaa00;background:rgba(255,170,0,.08);font-size:1rem;padding:6px 16px;}
+button.unban:hover{background:#ffaa00;color:#000;}
+.error{color:#ff3a3a;font-size:.7rem;margin-top:8px;}
+#app{display:none;padding:24px;}
+.topbar{display:flex;align-items:center;gap:16px;margin-bottom:24px;border-bottom:1px solid rgba(123,47,255,.3);padding-bottom:16px;}
+.topbar h1{flex:1;}
+.tabs{display:flex;gap:8px;margin-bottom:20px;}
+.tab{padding:8px 20px;font-family:'VT323',monospace;font-size:1.2rem;letter-spacing:2px;cursor:pointer;border-radius:6px;border:1px solid #7b2fff;background:transparent;color:#7b2fff;transition:all .2s;}
+.tab.active,.tab:hover{background:#7b2fff;color:#fff;}
+.panel{display:none;}
+.panel.active{display:block;}
+.report-card{border:1px solid rgba(123,47,255,.4);border-radius:8px;padding:16px;margin-bottom:12px;background:rgba(20,0,40,.5);}
+.report-card.ignored{opacity:.4;}
+.report-card.banned{border-color:#ff3a3a;}
+.rc-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;}
+.rc-flag{font-size:1.6rem;}
+.rc-info{flex:1;}
+.rc-name{font-family:'VT323',monospace;font-size:1.2rem;color:#ff00ff;}
+.rc-uid{font-size:.6rem;color:#6a4a9a;margin-top:2px;}
+.rc-time{font-size:.6rem;color:#6a4a9a;}
+.rc-status{font-family:'VT323',monospace;font-size:.9rem;padding:3px 10px;border-radius:4px;}
+.rc-status.pending{color:#ffaa00;border:1px solid #ffaa00;}
+.rc-status.ignored{color:#6a4a9a;border:1px solid #6a4a9a;}
+.rc-status.banned{color:#ff3a3a;border:1px solid #ff3a3a;}
+.rc-msg{background:rgba(255,0,0,.08);border-left:2px solid #ff3a3a;padding:8px 12px;font-size:.75rem;border-radius:4px;margin-bottom:10px;color:#ffcccc;}
+.rc-context{margin-bottom:10px;}
+.rc-context-title{font-size:.6rem;color:#6a4a9a;margin-bottom:6px;letter-spacing:1px;}
+.ctx-msg{padding:6px 10px;font-size:.72rem;border-radius:6px;margin-bottom:4px;}
+.ctx-msg.theirs{background:rgba(0,255,204,.07);border-left:2px solid #00ffcc;color:#d0fff5;}
+.ctx-msg.mine{background:rgba(123,47,255,.15);border-left:2px solid #ff00ff;color:#f0e0ff;text-align:right;}
+.rc-actions{display:flex;gap:8px;}
+.ban-list{display:flex;flex-direction:column;gap:8px;}
+.ban-item{border:1px solid rgba(255,58,58,.4);border-radius:8px;padding:12px 16px;background:rgba(255,0,0,.05);display:flex;align-items:center;gap:12px;}
+.ban-item .bi-uid{flex:1;font-size:.72rem;color:#ff9999;}
+.ban-item .bi-time{font-size:.6rem;color:#6a4a9a;}
+.empty{text-align:center;color:#6a4a9a;font-size:.75rem;margin-top:40px;font-style:italic;line-height:2;}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px;}
+.stat-card{border:1px solid rgba(123,47,255,.3);border-radius:8px;padding:16px;text-align:center;background:rgba(20,0,40,.4);}
+.stat-num{font-family:'VT323',monospace;font-size:2.5rem;color:#ff00ff;text-shadow:0 0 10px #ff00ff;}
+.stat-label{font-size:.62rem;color:#6a4a9a;margin-top:4px;}
+</style>
+</head>
+<body>
+
+<div class="login-wrap" id="login-wrap">
+  <div class="login-box">
+    <h1>👁 VOID ADMIN</h1>
+    <p>// authorised personnel only</p>
+    <input type="password" id="pw-input" placeholder="enter admin key..." />
+    <button id="pw-btn">ENTER</button>
+    <div class="error" id="pw-error"></div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <h1>👁 VOID ADMIN</h1>
+    <button id="refresh-btn">↻ REFRESH</button>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-num" id="stat-pending">0</div><div class="stat-label">pending reports</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-total">0</div><div class="stat-label">total reports</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-bans">0</div><div class="stat-label">active bans</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="reports">REPORTS</button>
+    <button class="tab" data-tab="bans">BANS</button>
+  </div>
+
+  <div class="panel active" id="panel-reports">
+    <div id="reports-list"><div class="empty">// loading...</div></div>
+  </div>
+  <div class="panel" id="panel-bans">
+    <div id="bans-list"><div class="empty">// loading...</div></div>
+  </div>
+</div>
+
+<script>
+var adminKey = "";
+
+document.getElementById("pw-btn").addEventListener("click", doLogin);
+document.getElementById("pw-input").addEventListener("keydown", function(e){ if(e.key==="Enter") doLogin(); });
+
+function doLogin(){
+  var pw = document.getElementById("pw-input").value;
+  fetch("/admin/login", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:pw})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.ok){ adminKey=pw; document.getElementById("login-wrap").style.display="none"; document.getElementById("app").style.display="block"; loadAll(); }
+      else{ document.getElementById("pw-error").textContent="// access denied"; }
+    });
+}
+
+document.querySelectorAll(".tab").forEach(function(tab){
+  tab.addEventListener("click", function(){
+    document.querySelectorAll(".tab").forEach(function(t){t.classList.remove("active");});
+    document.querySelectorAll(".panel").forEach(function(p){p.classList.remove("active");});
+    tab.classList.add("active");
+    document.getElementById("panel-"+tab.dataset.tab).classList.add("active");
+  });
+});
+
+document.getElementById("refresh-btn").addEventListener("click", loadAll);
+
+function loadAll(){ loadReports(); loadBans(); }
+
+function loadReports(){
+  fetch("/admin/reports",{headers:{"x-admin-key":adminKey}})
+    .then(function(r){return r.json();})
+    .then(function(reports){
+      var list = document.getElementById("reports-list");
+      var pending = reports.filter(function(r){return r.status==="pending";}).length;
+      document.getElementById("stat-pending").textContent = pending;
+      document.getElementById("stat-total").textContent = reports.length;
+      if(!reports.length){ list.innerHTML='<div class="empty">// no reports yet<br>// the void is peaceful</div>'; return; }
+      list.innerHTML="";
+      reports.forEach(function(r){
+        var card = document.createElement("div");
+        card.className = "report-card" + (r.status==="ignored"?" ignored":r.status==="banned"?" banned":"");
+        var ctx = "";
+        if(r.context && r.context.length){
+          ctx = '<div class="rc-context"><div class="rc-context-title">// chat context</div>';
+          r.context.forEach(function(m){ ctx+='<div class="ctx-msg '+(m.mine?"mine":"theirs")+'">'+escHtml(m.text)+'</div>'; });
+          ctx+='</div>';
+        }
+        var time = new Date(r.ts).toLocaleString();
+        card.innerHTML =
+          '<div class="rc-head">'+
+            '<div class="rc-flag">'+(r.reportedCountry&&r.reportedCountry.flag||"👁")+'</div>'+
+            '<div class="rc-info">'+
+              '<div class="rc-name">'+(r.reportedUsername||"anonymous")+'</div>'+
+              '<div class="rc-uid">uid: '+r.reportedUid+'</div>'+
+              '<div class="rc-time">'+time+'</div>'+
+            '</div>'+
+            '<span class="rc-status '+r.status+'">'+r.status+'</span>'+
+          '</div>'+
+          '<div class="rc-msg">'+escHtml(r.message)+'</div>'+
+          ctx+
+          '<div class="rc-actions">'+
+            (r.status==="pending"?'<button class="ignore" data-id="'+r.id+'">IGNORE</button><button class="ban" data-uid="'+r.reportedUid+'" data-id="'+r.id+'">PERMABAN</button>':"")+''+
+            (r.status==="banned"?'<button class="unban" data-uid="'+r.reportedUid+'">UNBAN</button>':"")+
+          '</div>';
+        list.appendChild(card);
+      });
+      list.querySelectorAll(".ignore").forEach(function(btn){
+        btn.addEventListener("click", function(){ ignoreReport(btn.dataset.id); });
+      });
+      list.querySelectorAll(".ban").forEach(function(btn){
+        btn.addEventListener("click", function(){ banUser(btn.dataset.uid, btn.dataset.id); });
+      });
+      list.querySelectorAll(".unban").forEach(function(btn){
+        btn.addEventListener("click", function(){ unbanUser(btn.dataset.uid); });
+      });
+    });
+}
+
+function loadBans(){
+  fetch("/admin/bans",{headers:{"x-admin-key":adminKey}})
+    .then(function(r){return r.json();})
+    .then(function(bans){
+      var list = document.getElementById("bans-list");
+      var keys = Object.keys(bans);
+      document.getElementById("stat-bans").textContent = keys.length;
+      if(!keys.length){ list.innerHTML='<div class="empty">// no active bans</div>'; return; }
+      list.innerHTML='<div class="ban-list">';
+      keys.forEach(function(uid){
+        var item = document.createElement("div");
+        item.className="ban-item";
+        item.innerHTML='<div class="bi-uid">'+uid+'</div><div class="bi-time">'+new Date(bans[uid].ts).toLocaleString()+'</div><button class="unban" data-uid="'+uid+'">UNBAN</button>';
+        item.querySelector(".unban").addEventListener("click",function(){ unbanUser(uid); });
+        list.appendChild(item);
+      });
+    });
+}
+
+function ignoreReport(id){
+  fetch("/admin/ignore/"+id,{method:"POST",headers:{"x-admin-key":adminKey}}).then(loadAll);
+}
+function banUser(uid,reportId){
+  if(!confirm("permaban "+uid+"?")) return;
+  fetch("/admin/ban/"+uid,{method:"POST",headers:{"x-admin-key":adminKey,"Content-Type":"application/json"},body:JSON.stringify({reportId:reportId})}).then(loadAll);
+}
+function unbanUser(uid){
+  fetch("/admin/unban/"+uid,{method:"POST",headers:{"x-admin-key":adminKey}}).then(loadAll);
+}
+function escHtml(t){var d=document.createElement("div");d.textContent=t;return d.innerHTML;}
+</script>
+</body>
+</html>

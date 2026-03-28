@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>talk to someone in the void</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-database-compat.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Space+Mono:wght@400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#020005;color:#e0d0ff;font-family:'Space Mono',monospace;height:100vh;overflow:hidden;}
+canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;}
+.scanline{position:fixed;top:0;left:0;width:100%;height:6px;background:linear-gradient(transparent,rgba(255,0,255,.07),transparent);z-index:4;pointer-events:none;animation:sl 4s linear infinite;}
+.scanline2{position:fixed;top:0;left:0;width:100%;height:4px;background:linear-gradient(transparent,rgba(0,255,200,.05),transparent);z-index:4;pointer-events:none;animation:sl 7s linear infinite reverse;}
+@keyframes sl{0%{transform:translateY(-10px)}100%{transform:translateY(100vh)}}
+.page{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
+.page.off{display:none;}
+/* landing */
+.eye{font-size:3rem;text-align:center;display:block;animation:pulse 2s infinite,hue 3s linear infinite;}
+#landing h1{font-family:'VT323',monospace;font-size:clamp(2rem,6vw,4.5rem);color:#fff;text-align:center;line-height:1.1;animation:rgb 2s infinite,flicker 5s infinite;}
+.tags{font-family:'VT323',monospace;font-size:1.2rem;color:#00ffcc;text-align:center;min-height:1.4rem;text-shadow:0 0 12px #00ffcc;margin-top:8px;}
+.sub{font-size:.7rem;color:#9977cc;font-style:italic;text-align:center;margin-top:6px;}
+.panel{width:100%;max-width:300px;display:flex;flex-direction:column;gap:10px;margin-top:16px;}
+.lbl{font-family:'VT323',monospace;font-size:1rem;color:#ff00ff;text-shadow:0 0 8px #ff00ff;letter-spacing:1px;}
+.hint{font-size:.58rem;color:#6a4a9a;}
+.inp{width:100%;background:rgba(10,0,20,.9);color:#e0d0ff;border:1px solid #7b2fff;padding:9px 12px;font-family:'Space Mono',monospace;font-size:.76rem;border-radius:6px;outline:none;}
+.inp:focus{border-color:#ff00ff;box-shadow:0 0 12px rgba(255,0,255,.3);}
+.inp::placeholder{color:#4a3a6a;}
+.wrap{position:relative;width:100%;}
+.dd{display:none;position:absolute;bottom:105%;left:0;right:0;max-height:150px;overflow-y:auto;background:rgba(5,0,12,.97);border:1px solid #7b2fff;border-radius:6px;z-index:100;}
+.ddi{padding:8px 12px;font-size:.74rem;color:#e0d0ff;cursor:pointer;}
+.ddi:hover{background:rgba(123,47,255,.4);}
+.btn{font-family:'VT323',monospace;font-size:1.4rem;letter-spacing:3px;text-transform:uppercase;cursor:pointer;border-radius:6px;padding:10px 30px;margin-top:10px;border:2px solid #7b2fff;background:rgba(123,47,255,.15);color:#e0d0ff;animation:rave 2.5s linear infinite;transition:all .2s;}
+.btn:hover{background:rgba(255,0,255,.3);border-color:#ff00ff;color:#fff;animation:none;box-shadow:0 0 24px #ff00ff;}
+.btn.sm{font-size:1rem;padding:6px 16px;margin-top:0;letter-spacing:1px;}
+.btn.pink{border-color:#ff2fd6;color:#ff2fd6;background:rgba(255,47,214,.08);}
+.btn.red{border-color:#ff3a3a;color:#ff3a3a;background:rgba(255,58,58,.08);animation:none;}
+.btn.red:hover{background:#ff3a3a;color:#fff;box-shadow:0 0 20px #ff3a3a;}
+.btn.cyan{border-color:#00ffcc;color:#00ffcc;background:rgba(0,255,204,.08);animation:none;}
+.btn.cyan:hover{background:#00ffcc;color:#000;}
+.btn.blocked{pointer-events:none;opacity:.25;filter:grayscale(1);animation:none!important;border-color:#444!important;color:#444!important;}
+/* nk */
+#nkwarn{display:none;font-family:'VT323',monospace;font-size:1.2rem;text-align:center;margin-top:8px;line-height:1.3;}
+body.nk #nkwarn{display:block;animation:nkt .09s infinite;}
+body.nk{animation:nks .15s infinite!important;}
+body.nk canvas{opacity:.25;}
+body.nk .page{animation:nksh .1s infinite!important;}
+body.nk h1{animation:nkt .08s infinite!important;}
+body.nk .tags{animation:nkt .1s infinite!important;}
+body.nk .btn{animation:nkt .12s infinite!important;}
+@keyframes nks{0%,100%{background:#f00}12%{background:#fff}25%{background:#00f}37%{background:#f0f}50%{background:#ff0}62%{background:#0ff}75%{background:#f60}87%{background:#0f0}}
+@keyframes nksh{0%,100%{transform:translate(0)}20%{transform:translate(-8px,5px) rotate(-2deg)}40%{transform:translate(8px,-5px) rotate(2deg)}60%{transform:translate(-10px,3px) rotate(-3deg)}80%{transform:translate(10px,-3px) rotate(1deg)}}
+@keyframes nkt{0%{color:#f00;text-shadow:3px 0 #0f0,-3px 0 #00f}25%{color:#ff0;text-shadow:-3px 0 #f0f,3px 0 #0ff}50%{color:#0f0;text-shadow:3px 0 #f00,-3px 0 #f0f}75%{color:#0ff;text-shadow:-3px 0 #ff0,3px 0 #f00}100%{color:#f00;text-shadow:3px 0 #0f0,-3px 0 #00f}}
+/* queue */
+#queue .orb{width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,#ff00ff,#7b2fff,transparent);animation:pulse 1.2s infinite,hue 2s linear infinite;margin-bottom:16px;}
+#queue h2{font-family:'VT323',monospace;font-size:2rem;color:#fff;animation:rgb 1.5s infinite;}
+#queue p{font-size:.7rem;color:#6a4a9a;margin-top:8px;}
+/* chat */
+#chat,#dmconvo{justify-content:flex-start;padding:0;overflow:hidden;padding-bottom:32px;}
+.chead{width:100%;padding:10px 14px;display:flex;align-items:center;gap:10px;background:rgba(2,0,8,.93);backdrop-filter:blur(10px);flex-shrink:0;border-bottom:2px solid transparent;animation:rave 3s linear infinite;}
+.chead .pi{display:flex;align-items:center;gap:8px;flex:1;min-width:0;}
+.cflag{font-size:1.5rem;flex-shrink:0;}
+.cname{font-family:'VT323',monospace;font-size:1.2rem;animation:rgb 3s infinite;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.csub{font-size:.56rem;color:#6a4a9a;margin-top:1px;}
+.msgs{flex:1;width:100%;overflow-y:auto;padding:14px 14px 6px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;scrollbar-color:#4a3a6a transparent;}
+.msg{max-width:70%;padding:9px 13px;font-size:.76rem;line-height:1.6;border-radius:12px;word-break:break-word;animation:min .2s ease;}
+.msg.me{align-self:flex-end;background:linear-gradient(135deg,rgba(123,47,255,.35),rgba(255,47,214,.2));border:1px solid rgba(255,0,255,.3);color:#f0e0ff;border-bottom-right-radius:3px;}
+.msg.them{align-self:flex-start;background:linear-gradient(135deg,rgba(0,255,204,.1),rgba(0,180,255,.07));border:1px solid rgba(0,255,204,.22);color:#d0fff5;border-bottom-left-radius:3px;}
+.mmeta{display:flex;align-items:center;gap:5px;margin-bottom:3px;}
+.mflag{font-size:.9rem;}
+.msender{font-size:.58rem;font-family:'VT323',monospace;letter-spacing:1px;}
+.msg.me .msender{color:#cc88ff;}
+.msg.them .msender{color:#00ffcc;}
+.mtime{font-size:.54rem;color:#4a3a6a;margin-top:4px;display:block;text-align:right;}
+.msg.them .mtime{text-align:left;}
+.sysmsg{text-align:center;font-size:.6rem;color:#ff00ff;font-style:italic;padding:3px 0;text-shadow:0 0 8px #ff00ff;}
+.typing{display:none;align-self:flex-start;margin:0 14px 4px;padding:6px 12px;background:rgba(0,255,204,.06);border:1px solid rgba(0,255,204,.2);font-size:.64rem;color:#00ffcc;font-style:italic;border-radius:10px;border-bottom-left-radius:3px;align-items:center;gap:5px;}
+.typing.on{display:flex;}
+.tdots span{display:inline-block;width:4px;height:4px;border-radius:50%;background:#00ffcc;animation:td 1.2s infinite;}
+.tdots span:nth-child(2){animation-delay:.2s;}
+.tdots span:nth-child(3){animation-delay:.4s;}
+@keyframes td{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}
+.cinput{width:100%;padding:8px 12px;display:flex;gap:8px;background:rgba(2,0,8,.97);flex-shrink:0;border-top:1px solid rgba(123,47,255,.25);}
+.cinput input{flex:1;background:rgba(20,0,40,.8);border:1px solid rgba(123,47,255,.5);color:#e0d0ff;font-family:'Space Mono',monospace;font-size:.76rem;padding:8px 12px;border-radius:10px;outline:none;}
+.cinput input:focus{border-color:#ff00ff;box-shadow:0 0 10px rgba(255,0,255,.2);}
+.cinput input::placeholder{color:#4a3a6a;}
+.cinput button{background:linear-gradient(135deg,#7b2fff,#ff2fd6);border:none;color:#fff;font-family:'VT323',monospace;font-size:1.1rem;padding:0 16px;cursor:pointer;letter-spacing:2px;border-radius:10px;}
+.cinput button:hover{background:linear-gradient(135deg,#00ffcc,#ff00ff);}
+.cacts{display:flex;gap:6px;padding:6px 12px 8px;background:rgba(2,0,8,.97);flex-shrink:0;}
+.cacts button{flex:1;padding:7px;font-family:'VT323',monospace;font-size:.95rem;letter-spacing:1px;cursor:pointer;border-radius:8px;border:1px solid;transition:all .2s;}
+/* dm inbox */
+#dminbox{justify-content:flex-start;padding:0;overflow:hidden;}
+.dhead{width:100%;padding:12px 14px;border-bottom:1px solid rgba(123,47,255,.3);display:flex;align-items:center;gap:10px;background:rgba(2,0,8,.92);flex-shrink:0;}
+.dhead h2{font-family:'VT323',monospace;font-size:1.5rem;animation:rgb 2s infinite;flex:1;}
+.dlist{flex:1;width:100%;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;}
+.ditem{padding:10px 14px;border:1px solid rgba(123,47,255,.3);cursor:pointer;display:flex;align-items:center;gap:10px;border-radius:10px;background:rgba(20,0,40,.4);transition:all .2s;}
+.ditem:hover{border-color:#ff00ff;background:rgba(255,0,255,.05);}
+.ditem .di{flex:1;}
+.ditem .dn{font-size:.78rem;color:#e0d0ff;}
+.ditem .dp{font-size:.6rem;color:#6a4a9a;margin-top:2px;}
+.empty{text-align:center;color:#6a4a9a;font-size:.72rem;margin-top:40px;font-style:italic;line-height:2;}
+/* report modal */
+.modal{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.86);display:none;align-items:center;justify-content:center;padding:20px;}
+.modal.on{display:flex;}
+.mbox{max-width:360px;width:100%;border:1px solid #ff3a3a;border-radius:10px;padding:22px;background:rgba(10,0,20,.97);}
+.mbox h2{font-family:'VT323',monospace;font-size:1.7rem;color:#ff3a3a;margin-bottom:8px;letter-spacing:2px;}
+.mbox p{font-size:.68rem;color:#9977cc;line-height:1.6;margin-bottom:12px;}
+.mbox textarea{width:100%;background:rgba(20,0,40,.8);border:1px solid rgba(255,58,58,.5);color:#e0d0ff;font-family:'Space Mono',monospace;font-size:.73rem;padding:9px;border-radius:6px;outline:none;resize:none;height:80px;margin-bottom:10px;}
+.mbox .row{display:flex;gap:8px;}
+.mfb{font-size:.62rem;text-align:center;min-height:.8rem;margin-top:6px;}
+/* epilepsy */
+#epimodal{position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.93);display:none;align-items:center;justify-content:center;padding:20px;}
+#epimodal.on{display:flex;}
+#epimodal .mbox{border-color:#ff2fd6;}
+#epimodal .mbox h2{color:#ff2fd6;font-size:1.6rem;}
+/* online count */
+#souls{position:fixed;top:12px;right:14px;z-index:20;font-size:.6rem;color:#6a4a9a;background:rgba(2,0,8,.7);padding:4px 10px;border-radius:20px;border:1px solid rgba(123,47,255,.3);}
+#souls span{color:#00ffcc;text-shadow:0 0 8px #00ffcc;}
+/* footer */
+#footer{position:fixed;bottom:0;left:0;right:0;z-index:20;background:rgba(2,0,8,.92);backdrop-filter:blur(8px);border-top:1px solid rgba(123,47,255,.3);padding:5px 14px;font-size:.55rem;color:#4a3a6a;text-align:center;line-height:1.4;}
+/* animations */
+@keyframes rgb{0%{text-shadow:2px 0 #f00,-2px 0 #0ff,0 0 20px #f0f}33%{text-shadow:2px 0 #0f0,-2px 0 #f0f,0 0 20px #0fc}66%{text-shadow:-2px 0 #00f,2px 0 #ff0,0 0 20px #fa0}100%{text-shadow:2px 0 #f00,-2px 0 #0ff,0 0 20px #f0f}}
+@keyframes flicker{0%,100%{opacity:1}91%{opacity:1}92%{opacity:.15}93%{opacity:1}97%{opacity:.6}98%{opacity:1}}
+@keyframes pulse{0%,100%{box-shadow:0 0 30px #ff00ff,0 0 60px #7b2fff}50%{box-shadow:0 0 60px #00ffcc,0 0 120px #ffaa00}}
+@keyframes hue{0%{filter:hue-rotate(0deg)}100%{filter:hue-rotate(360deg)}}
+@keyframes rave{0%{border-color:#f0f}25%{border-color:#0fc}50%{border-color:#fa0}75%{border-color:#7b2fff}100%{border-color:#f0f}}
+@keyframes min{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:linear-gradient(#ff00ff,#00ffcc);border-radius:2px;}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div class="scanline"></div>
+<div class="scanline2"></div>
+
+<!-- EPILEPSY MODAL -->
+<div id="epimodal">
+  <div class="mbox">
+    <h2>⚠️ WARNING</h2>
+    <p>North Korea mode contains <strong style="color:#ff2fd6">extreme flashing lights</strong> and strobing effects that may affect people with photosensitive epilepsy. Do not proceed if you have a history of seizures.</p>
+    <div class="row">
+      <button class="btn sm" id="epi-ok" style="border-color:#ff2fd6;color:#ff2fd6;">I UNDERSTAND</button>
+      <button class="btn sm red" id="epi-cancel">GO BACK</button>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT MODAL -->
+<div class="modal" id="reportmodal">
+  <div class="mbox">
+    <h2>🚩 REPORT USER</h2>
+    <p>Describe what happened. Swearing is fine — only slurs, harassment and illegal content will be actioned.</p>
+    <textarea id="report-txt" placeholder="what did they do..."></textarea>
+    <div class="row">
+      <button class="btn sm red" id="report-send">SEND REPORT</button>
+      <button class="btn sm" id="report-cancel" style="border-color:#6a4a9a;color:#6a4a9a;">CANCEL</button>
+    </div>
+    <div class="mfb" id="report-fb"></div>
+  </div>
+</div>
+
+<!-- LANDING -->
+<div class="page" id="landing">
+  <span class="eye">👁</span>
+  <h1>talk to someone<br>in the void</h1>
+  <div class="tags" id="tags"></div>
+  <p class="sub">you are not alone. but you are.</p>
+  <div class="panel">
+    <div>
+      <div class="lbl" id="unlbl">// your name in the void</div>
+      <input class="inp" id="uninp" type="text" placeholder="anonymous" maxlength="20" style="margin-top:4px;"/>
+      <div class="hint" style="margin-top:3px;">leave blank to stay anonymous</div>
+    </div>
+    <div>
+      <div class="lbl" id="orlbl">// your origin</div>
+      <div class="wrap" style="margin-top:4px;">
+        <input class="inp" id="orinp" type="text" placeholder="search your country..." autocomplete="off"/>
+        <div class="dd" id="ordd"></div>
+      </div>
+    </div>
+    <div>
+      <div class="lbl" id="matlbl">// match with: anyone</div>
+      <div class="wrap" style="margin-top:4px;">
+        <input class="inp" id="matinp" type="text" placeholder="search country to match..." autocomplete="off"/>
+        <div class="dd" id="matdd"></div>
+      </div>
+    </div>
+  </div>
+  <button class="btn" id="enterbtn">enter the void</button>
+  <div id="nkwarn">⚠️ SIGNAL REJECTED 🇰🇵<br>YOU CANNOT ENTER FROM THIS LOCATION</div>
+  <button class="btn pink" id="dmopenbtn" style="margin-top:8px;font-size:1rem;">📬 messages</button>
+</div>
+
+<!-- QUEUE -->
+<div class="page off" id="queue">
+  <div class="orb"></div>
+  <h2>drifting through the void...</h2>
+  <p>searching for another soul &nbsp;<span id="qcount"></span></p>
+  <button class="btn red" style="margin-top:22px;" id="qcancelbtn">leave the void</button>
+</div>
+
+<!-- CHAT -->
+<div class="page off" id="chat">
+  <div class="chead">
+    <div class="pi">
+      <span class="cflag" id="pflag">👁</span>
+      <div>
+        <div class="cname" id="pname">stranger</div>
+        <div class="csub" id="pstatus">// connected to the void</div>
+      </div>
+    </div>
+  </div>
+  <div class="msgs" id="msgs"><div class="sysmsg">// you have found each other in the dark</div></div>
+  <div class="typing off" id="typing">// composing... <div class="tdots"><span></span><span></span><span></span></div></div>
+  <div class="cinput">
+    <input type="text" id="cinp" placeholder="say something into the void..." maxlength="500"/>
+    <button id="sendbtn">SEND</button>
+  </div>
+  <div class="cacts">
+    <button class="cyan" id="dmbtn" style="flex:.8;">💌 dm</button>
+    <button class="red" id="reportbtn" style="flex:.6;font-size:.85rem;">🚩 report</button>
+    <button class="red" id="leavebtn">disconnect</button>
+  </div>
+</div>
+
+<!-- DM INBOX -->
+<div class="page off" id="dminbox">
+  <div class="dhead">
+    <button class="btn sm" id="dmbackbtn">← back</button>
+    <h2>📬 echoes from the void</h2>
+  </div>
+  <div class="dlist" id="dlist"></div>
+</div>
+
+<!-- DM CONVO -->
+<div class="page off" id="dmconvo">
+  <div class="chead">
+    <button class="btn sm" id="dmconvobackbtn">← back</button>
+    <div class="pi" style="margin-left:8px;">
+      <span class="cflag" id="dmflag"></span>
+      <div class="cname" id="dmname"></div>
+    </div>
+  </div>
+  <div class="msgs" id="dmmsgs"></div>
+  <div class="cinput">
+    <input type="text" id="dminp" placeholder="send a message into the void..." maxlength="500"/>
+    <button id="dmsendbtn">SEND</button>
+  </div>
+</div>
+
+<div id="souls">👁 <span id="soulcount">?</span> souls in the void</div>
+<div id="footer">🛡️ <strong style="color:#7b5aaa">Talk to Someone in the Void</strong> prohibits illegal content, nudity, harassment and content involving minors. No personal data stored. <strong style="color:#7b5aaa">13+</strong> only. ⚠️ Off-platform interactions are entirely at your own risk — the owner accepts <strong style="color:#7b5aaa">no responsibility</strong>.</div>
+
+<script>
+// ── COUNTRIES ──
+var C=[{code:"AF",name:"Afghanistan",flag:"🇦🇫"},{code:"AL",name:"Albania",flag:"🇦🇱"},{code:"DZ",name:"Algeria",flag:"🇩🇿"},{code:"AD",name:"Andorra",flag:"🇦🇩"},{code:"AO",name:"Angola",flag:"🇦🇴"},{code:"AG",name:"Antigua & Barbuda",flag:"🇦🇬"},{code:"AR",name:"Argentina",flag:"🇦🇷"},{code:"AM",name:"Armenia",flag:"🇦🇲"},{code:"AU",name:"Australia",flag:"🇦🇺"},{code:"AT",name:"Austria",flag:"🇦🇹"},{code:"AZ",name:"Azerbaijan",flag:"🇦🇿"},{code:"BS",name:"Bahamas",flag:"🇧🇸"},{code:"BH",name:"Bahrain",flag:"🇧🇭"},{code:"BD",name:"Bangladesh",flag:"🇧🇩"},{code:"BB",name:"Barbados",flag:"🇧🇧"},{code:"BY",name:"Belarus",flag:"🇧🇾"},{code:"BE",name:"Belgium",flag:"🇧🇪"},{code:"BZ",name:"Belize",flag:"🇧🇿"},{code:"BJ",name:"Benin",flag:"🇧🇯"},{code:"BT",name:"Bhutan",flag:"🇧🇹"},{code:"BO",name:"Bolivia",flag:"🇧🇴"},{code:"BA",name:"Bosnia",flag:"🇧🇦"},{code:"BW",name:"Botswana",flag:"🇧🇼"},{code:"BR",name:"Brazil",flag:"🇧🇷"},{code:"BN",name:"Brunei",flag:"🇧🇳"},{code:"BG",name:"Bulgaria",flag:"🇧🇬"},{code:"BF",name:"Burkina Faso",flag:"🇧🇫"},{code:"BI",name:"Burundi",flag:"🇧🇮"},{code:"CV",name:"Cabo Verde",flag:"🇨🇻"},{code:"KH",name:"Cambodia",flag:"🇰🇭"},{code:"CM",name:"Cameroon",flag:"🇨🇲"},{code:"CA",name:"Canada",flag:"🇨🇦"},{code:"CF",name:"Central African Republic",flag:"🇨🇫"},{code:"TD",name:"Chad",flag:"🇹🇩"},{code:"CL",name:"Chile",flag:"🇨🇱"},{code:"CN",name:"China",flag:"🇨🇳"},{code:"CO",name:"Colombia",flag:"🇨🇴"},{code:"KM",name:"Comoros",flag:"🇰🇲"},{code:"CG",name:"Congo",flag:"🇨🇬"},{code:"CD",name:"DR Congo",flag:"🇨🇩"},{code:"CR",name:"Costa Rica",flag:"🇨🇷"},{code:"HR",name:"Croatia",flag:"🇭🇷"},{code:"CU",name:"Cuba",flag:"🇨🇺"},{code:"CY",name:"Cyprus",flag:"🇨🇾"},{code:"CZ",name:"Czechia",flag:"🇨🇿"},{code:"DK",name:"Denmark",flag:"🇩🇰"},{code:"DJ",name:"Djibouti",flag:"🇩🇯"},{code:"DM",name:"Dominica",flag:"🇩🇲"},{code:"DO",name:"Dominican Republic",flag:"🇩🇴"},{code:"EC",name:"Ecuador",flag:"🇪🇨"},{code:"EG",name:"Egypt",flag:"🇪🇬"},{code:"SV",name:"El Salvador",flag:"🇸🇻"},{code:"GQ",name:"Equatorial Guinea",flag:"🇬🇶"},{code:"ER",name:"Eritrea",flag:"🇪🇷"},{code:"EE",name:"Estonia",flag:"🇪🇪"},{code:"SZ",name:"Eswatini",flag:"🇸🇿"},{code:"ET",name:"Ethiopia",flag:"🇪🇹"},{code:"FJ",name:"Fiji",flag:"🇫🇯"},{code:"FI",name:"Finland",flag:"🇫🇮"},{code:"FR",name:"France",flag:"🇫🇷"},{code:"GA",name:"Gabon",flag:"🇬🇦"},{code:"GM",name:"Gambia",flag:"🇬🇲"},{code:"GE",name:"Georgia",flag:"🇬🇪"},{code:"DE",name:"Germany",flag:"🇩🇪"},{code:"GH",name:"Ghana",flag:"🇬🇭"},{code:"GR",name:"Greece",flag:"🇬🇷"},{code:"GD",name:"Grenada",flag:"🇬🇩"},{code:"GT",name:"Guatemala",flag:"🇬🇹"},{code:"GN",name:"Guinea",flag:"🇬🇳"},{code:"GW",name:"Guinea-Bissau",flag:"🇬🇼"},{code:"GY",name:"Guyana",flag:"🇬🇾"},{code:"HT",name:"Haiti",flag:"🇭🇹"},{code:"HN",name:"Honduras",flag:"🇭🇳"},{code:"HU",name:"Hungary",flag:"🇭🇺"},{code:"IS",name:"Iceland",flag:"🇮🇸"},{code:"IN",name:"India",flag:"🇮🇳"},{code:"ID",name:"Indonesia",flag:"🇮🇩"},{code:"IR",name:"Iran",flag:"🇮🇷"},{code:"IQ",name:"Iraq",flag:"🇮🇶"},{code:"IE",name:"Ireland",flag:"🇮🇪"},{code:"IL",name:"Israel",flag:"🇮🇱"},{code:"IT",name:"Italy",flag:"🇮🇹"},{code:"JM",name:"Jamaica",flag:"🇯🇲"},{code:"JP",name:"Japan",flag:"🇯🇵"},{code:"JO",name:"Jordan",flag:"🇯🇴"},{code:"KZ",name:"Kazakhstan",flag:"🇰🇿"},{code:"KE",name:"Kenya",flag:"🇰🇪"},{code:"KI",name:"Kiribati",flag:"🇰🇮"},{code:"KW",name:"Kuwait",flag:"🇰🇼"},{code:"KG",name:"Kyrgyzstan",flag:"🇰🇬"},{code:"LA",name:"Laos",flag:"🇱🇦"},{code:"LV",name:"Latvia",flag:"🇱🇻"},{code:"LB",name:"Lebanon",flag:"🇱🇧"},{code:"LS",name:"Lesotho",flag:"🇱🇸"},{code:"LR",name:"Liberia",flag:"🇱🇷"},{code:"LY",name:"Libya",flag:"🇱🇾"},{code:"LI",name:"Liechtenstein",flag:"🇱🇮"},{code:"LT",name:"Lithuania",flag:"🇱🇹"},{code:"LU",name:"Luxembourg",flag:"🇱🇺"},{code:"MG",name:"Madagascar",flag:"🇲🇬"},{code:"MW",name:"Malawi",flag:"🇲🇼"},{code:"MY",name:"Malaysia",flag:"🇲🇾"},{code:"MV",name:"Maldives",flag:"🇲🇻"},{code:"ML",name:"Mali",flag:"🇲🇱"},{code:"MT",name:"Malta",flag:"🇲🇹"},{code:"MH",name:"Marshall Islands",flag:"🇲🇭"},{code:"MR",name:"Mauritania",flag:"🇲🇷"},{code:"MU",name:"Mauritius",flag:"🇲🇺"},{code:"MX",name:"Mexico",flag:"🇲🇽"},{code:"FM",name:"Micronesia",flag:"🇫🇲"},{code:"MD",name:"Moldova",flag:"🇲🇩"},{code:"MC",name:"Monaco",flag:"🇲🇨"},{code:"MN",name:"Mongolia",flag:"🇲🇳"},{code:"ME",name:"Montenegro",flag:"🇲🇪"},{code:"MA",name:"Morocco",flag:"🇲🇦"},{code:"MZ",name:"Mozambique",flag:"🇲🇿"},{code:"MM",name:"Myanmar",flag:"🇲🇲"},{code:"NA",name:"Namibia",flag:"🇳🇦"},{code:"NR",name:"Nauru",flag:"🇳🇷"},{code:"NP",name:"Nepal",flag:"🇳🇵"},{code:"NL",name:"Netherlands",flag:"🇳🇱"},{code:"NZ",name:"New Zealand",flag:"🇳🇿"},{code:"NI",name:"Nicaragua",flag:"🇳🇮"},{code:"NE",name:"Niger",flag:"🇳🇪"},{code:"NG",name:"Nigeria",flag:"🇳🇬"},{code:"KP",name:"North Korea",flag:"🇰🇵"},{code:"MK",name:"North Macedonia",flag:"🇲🇰"},{code:"NO",name:"Norway",flag:"🇳🇴"},{code:"OM",name:"Oman",flag:"🇴🇲"},{code:"PK",name:"Pakistan",flag:"🇵🇰"},{code:"PW",name:"Palau",flag:"🇵🇼"},{code:"PA",name:"Panama",flag:"🇵🇦"},{code:"PG",name:"Papua New Guinea",flag:"🇵🇬"},{code:"PY",name:"Paraguay",flag:"🇵🇾"},{code:"PE",name:"Peru",flag:"🇵🇪"},{code:"PH",name:"Philippines",flag:"🇵🇭"},{code:"PL",name:"Poland",flag:"🇵🇱"},{code:"PT",name:"Portugal",flag:"🇵🇹"},{code:"QA",name:"Qatar",flag:"🇶🇦"},{code:"RO",name:"Romania",flag:"🇷🇴"},{code:"RU",name:"Russia",flag:"🇷🇺"},{code:"RW",name:"Rwanda",flag:"🇷🇼"},{code:"KN",name:"Saint Kitts & Nevis",flag:"🇰🇳"},{code:"LC",name:"Saint Lucia",flag:"🇱🇨"},{code:"VC",name:"Saint Vincent",flag:"🇻🇨"},{code:"WS",name:"Samoa",flag:"🇼🇸"},{code:"SM",name:"San Marino",flag:"🇸🇲"},{code:"ST",name:"Sao Tome & Principe",flag:"🇸🇹"},{code:"SA",name:"Saudi Arabia",flag:"🇸🇦"},{code:"SN",name:"Senegal",flag:"🇸🇳"},{code:"RS",name:"Serbia",flag:"🇷🇸"},{code:"SC",name:"Seychelles",flag:"🇸🇨"},{code:"SL",name:"Sierra Leone",flag:"🇸🇱"},{code:"SG",name:"Singapore",flag:"🇸🇬"},{code:"SK",name:"Slovakia",flag:"🇸🇰"},{code:"SI",name:"Slovenia",flag:"🇸🇮"},{code:"SB",name:"Solomon Islands",flag:"🇸🇧"},{code:"SO",name:"Somalia",flag:"🇸🇴"},{code:"ZA",name:"South Africa",flag:"🇿🇦"},{code:"SS",name:"South Sudan",flag:"🇸🇸"},{code:"ES",name:"Spain",flag:"🇪🇸"},{code:"LK",name:"Sri Lanka",flag:"🇱🇰"},{code:"SD",name:"Sudan",flag:"🇸🇩"},{code:"SR",name:"Suriname",flag:"🇸🇷"},{code:"SE",name:"Sweden",flag:"🇸🇪"},{code:"CH",name:"Switzerland",flag:"🇨🇭"},{code:"SY",name:"Syria",flag:"🇸🇾"},{code:"TW",name:"Taiwan",flag:"🇹🇼"},{code:"TJ",name:"Tajikistan",flag:"🇹🇯"},{code:"TZ",name:"Tanzania",flag:"🇹🇿"},{code:"TH",name:"Thailand",flag:"🇹🇭"},{code:"TL",name:"Timor-Leste",flag:"🇹🇱"},{code:"TG",name:"Togo",flag:"🇹🇬"},{code:"TO",name:"Tonga",flag:"🇹🇴"},{code:"TT",name:"Trinidad & Tobago",flag:"🇹🇹"},{code:"TN",name:"Tunisia",flag:"🇹🇳"},{code:"TR",name:"Turkey",flag:"🇹🇷"},{code:"TM",name:"Turkmenistan",flag:"🇹🇲"},{code:"TV",name:"Tuvalu",flag:"🇹🇻"},{code:"UG",name:"Uganda",flag:"🇺🇬"},{code:"UA",name:"Ukraine",flag:"🇺🇦"},{code:"AE",name:"United Arab Emirates",flag:"🇦🇪"},{code:"GB",name:"United Kingdom",flag:"🇬🇧"},{code:"US",name:"United States",flag:"🇺🇸"},{code:"UY",name:"Uruguay",flag:"🇺🇾"},{code:"UZ",name:"Uzbekistan",flag:"🇺🇿"},{code:"VU",name:"Vanuatu",flag:"🇻🇺"},{code:"VE",name:"Venezuela",flag:"🇻🇪"},{code:"VN",name:"Vietnam",flag:"🇻🇳"},{code:"YE",name:"Yemen",flag:"🇾🇪"},{code:"ZM",name:"Zambia",flag:"🇿🇲"},{code:"ZW",name:"Zimbabwe",flag:"🇿🇼"},{code:"XX",name:"The Void",flag:"👁"}];
+
+// ── SLUR FILTER ──
+var SL=["nigger","nigga","chink","gook","spic","kike","wetback","beaner","coon","jigaboo","raghead","towelhead","sandnigger","shitskin","golliwog","nip","kraut","polack","dago","wop","greaseball","hymie","heeb","yid","paddy","fenian","taig","pikey","gypo","cholo","slope","slant","squaw","redskin","injun","faggot","tranny","shemale","poofter","poof","battyboy","sodomite","retard","spastic","mong","mongol","cripple","gimp","muzzie","paki","subhuman","femoid","roastie"];
+function norm(t){return t.toLowerCase().replace(/@/g,"a").replace(/4/g,"a").replace(/3/g,"e").replace(/[1!|]/g,"i").replace(/0/g,"o").replace(/9/g,"g").replace(/\$/g,"s").replace(/5/g,"s").replace(/7/g,"t").replace(/[\s\-_.]/g,"");}
+function filt(t){var n=norm(t);for(var i=0;i<SL.length;i++){if(n.indexOf(SL[i])!==-1)return "[removed]";}return t;}
+
+// ── FIREBASE ──
+firebase.initializeApp({apiKey:"AIzaSyAwAeUs_XNsLSxUem5ONFAVldRgY5rP8oY",authDomain:"ttsitv-a56b5.firebaseapp.com",databaseURL:"https://ttsitv-a56b5-default-rtdb.firebaseio.com",projectId:"ttsitv-a56b5",storageBucket:"ttsitv-a56b5.firebasestorage.app",messagingSenderId:"919920384818",appId:"1:919920384818:web:65cae2aab32b4a7e18d52b"});
+var db=firebase.database();
+
+// ── CANVAS ──
+var cv=document.getElementById("cv"),cx=cv.getContext("2d"),W,H,pts=[],orbs=[],fr=0;
+function mkp(){return{x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.8,vy:(Math.random()-.5)*.8,r:Math.random()*3+.8,a:Math.random()*Math.PI*2,h:Math.random()*360,p:Math.random()*Math.PI*2};}
+function mko(){return{x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25,r:Math.random()*90+40,h:Math.random()*360,a:Math.random()*Math.PI*2};}
+function rsz(){W=cv.width=innerWidth;H=cv.height=innerHeight;pts=[];for(var i=0;i<200;i++)pts.push(mkp());orbs=[];for(var i=0;i<7;i++)orbs.push(mko());}
+rsz();window.addEventListener("resize",rsz);
+function draw(){fr++;cx.fillStyle="rgba(2,0,5,.1)";cx.fillRect(0,0,W,H);for(var i=0;i<orbs.length;i++){var o=orbs[i];o.x+=o.vx;o.y+=o.vy;o.h+=.6;o.a+=.008;if(o.x<-o.r)o.x=W+o.r;if(o.x>W+o.r)o.x=-o.r;if(o.y<-o.r)o.y=H+o.r;if(o.y>H+o.r)o.y=-o.r;var sz=o.r*(1+Math.sin(o.a)*.25);var g=cx.createRadialGradient(o.x,o.y,0,o.x,o.y,sz);g.addColorStop(0,"hsla("+o.h+",100%,65%,.16)");g.addColorStop(1,"hsla("+(o.h+60)+",100%,50%,0)");cx.beginPath();cx.arc(o.x,o.y,sz,0,Math.PI*2);cx.fillStyle=g;cx.fill();}for(var i=0;i<pts.length;i++){var p=pts[i];p.x+=p.vx;p.y+=p.vy;p.a+=.01;p.p+=.05;p.h+=1;if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;var sz=p.r*(1+Math.sin(p.p)*.35);var g=cx.createRadialGradient(p.x,p.y,0,p.x,p.y,sz*5);g.addColorStop(0,"hsla("+p.h+",100%,75%,.55)");g.addColorStop(1,"hsla("+p.h+",100%,60%,0)");cx.beginPath();cx.arc(p.x,p.y,sz*5,0,Math.PI*2);cx.fillStyle=g;cx.fill();cx.beginPath();cx.arc(p.x,p.y,sz,0,Math.PI*2);cx.fillStyle="hsl("+p.h+",100%,92%)";cx.fill();}requestAnimationFrame(draw);}
+draw();
+
+// ── TAGLINES ──
+var TL=["you are not alone. but you are.","somewhere someone is also staring into nothing.","the void stares back. it is warm.","connection is a strange word for this.","hello? ...hello?","two shapes in the dark.","speak and be heard by no one you know.","this is real. probably.","are you still there?","the signal is weak. so are you."],ti=0;
+function rtag(){document.getElementById("tags").textContent=TL[ti++%TL.length];setTimeout(rtag,3200);}rtag();
+
+// ── STORAGE ──
+function sv(k,v){try{localStorage.setItem("v_"+k,JSON.stringify(v));}catch(e){}}
+function ld(k,d){try{var v=localStorage.getItem("v_"+k);return v!==null?JSON.parse(v):d;}catch(e){return d;}}
+
+// ── STATE ──
+var uid="u"+Math.random().toString(36).slice(2,10);
+var myC=null,matC="ANY",myU="",sesId=null,peerId=null,peerC=null,peerU=null,qref=null,ttimer=null,actDm=null,sesLis=null,hist=[];
+
+function findC(code){for(var i=0;i<C.length;i++)if(C[i].code===code)return C[i];return null;}
+function pg(id){var all=document.querySelectorAll(".page");for(var i=0;i<all.length;i++)all[i].classList.add("off");document.getElementById(id).classList.remove("off");}
+function esc(t){var d=document.createElement("div");d.textContent=t;return d.innerHTML;}
+function dname(u,c){return u||(c&&c.name?"stranger // "+c.name:"stranger");}
+function ts(){return new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});}
+
+// ── DROPDOWN ──
+function mkdd(inp,dd,list,onpick,withany){
+  var opts=withany?[{code:"ANY",name:"Anyone in the void",flag:"🌍"}].concat(list):list;
+  function render(q){
+    var lq=q.toLowerCase();dd.innerHTML="";var n=0;
+    for(var i=0;i<opts.length&&n<18;i++){
+      var co=opts[i];
+      if(co.name.toLowerCase().indexOf(lq)!==-1||co.code.toLowerCase().indexOf(lq)!==-1){
+        n++;
+        var el=document.createElement("div");el.className="ddi";el.textContent=co.flag+"  "+co.name;el.setAttribute("data-i",i);
+        dd.appendChild(el);
+      }
+    }
+    dd.style.display=n?"block":"none";
+  }
+  dd.addEventListener("mousedown",function(e){
+    var t=e.target;if(!t.classList.contains("ddi"))return;e.preventDefault();
+    var idx=parseInt(t.getAttribute("data-i"));
+    // find the option by re-filtering
+    var lq=inp.value.toLowerCase();var n=0;
+    for(var i=0;i<opts.length;i++){
+      var co=opts[i];
+      if(co.name.toLowerCase().indexOf(lq)!==-1||co.code.toLowerCase().indexOf(lq)!==-1){
+        if(n===idx){onpick(co);break;}n++;
+      }
+    }
+    dd.style.display="none";
+  });
+  inp.addEventListener("focus",function(){render(inp.value);});
+  inp.addEventListener("input",function(){render(inp.value);});
+  inp.addEventListener("blur",function(){setTimeout(function(){dd.style.display="none";},200);});
+}
+
+// ── USERNAME ──
+var uninp=document.getElementById("uninp");
+myU=ld("un","");uninp.value=myU;
+if(myU)document.getElementById("unlbl").textContent="// you are: "+myU;
+uninp.addEventListener("input",function(){myU=filt(uninp.value.slice(0,20));uninp.value=myU;sv("un",myU);document.getElementById("unlbl").textContent=myU?"// you are: "+myU:"// your name in the void";});
+
+// ── ORIGIN ──
+var sc=ld("or","GB");myC=findC(sc)||findC("GB");
+var orinp=document.getElementById("orinp");
+orinp.value=myC.flag+"  "+myC.name;
+document.getElementById("orlbl").textContent="// your origin: "+myC.flag+" "+myC.name;
+mkdd(orinp,document.getElementById("ordd"),C,function(co){
+  if(co.code==="KP"){document.getElementById("epimodal").classList.add("on");return;}
+  myC=co;sv("or",co.code);orinp.value=co.flag+"  "+co.name;
+  document.getElementById("orlbl").textContent="// your origin: "+co.flag+" "+co.name;
+  document.body.classList.remove("nk");document.getElementById("enterbtn").classList.remove("blocked");
+},false);
+
+// ── MATCH ──
+var sm=ld("mat","ANY");matC=sm;
+var matinp=document.getElementById("matinp");
+if(matC!=="ANY"){var mc2=findC(matC);if(mc2){matinp.value=mc2.flag+"  "+mc2.name;document.getElementById("matlbl").textContent="// match with: "+mc2.flag+" "+mc2.name;}}
+var matlist=[];for(var i=0;i<C.length;i++)if(C[i].code!=="KP")matlist.push(C[i]);
+mkdd(matinp,document.getElementById("matdd"),matlist,function(co){
+  matC=co.code;sv("mat",co.code);
+  matinp.value=co.code==="ANY"?"":co.flag+"  "+co.name;
+  document.getElementById("matlbl").textContent=co.code==="ANY"?"// match with: anyone":"// match with: "+co.flag+" "+co.name;
+},true);
+
+// ── NK ──
+document.getElementById("epi-ok").addEventListener("click",function(){
+  document.getElementById("epimodal").classList.remove("on");
+  myC=findC("KP");sv("or","KP");orinp.value="🇰🇵  North Korea";
+  document.getElementById("orlbl").textContent="// your origin: 🇰🇵 North Korea";
+  document.body.classList.add("nk");document.getElementById("enterbtn").classList.add("blocked");
+});
+document.getElementById("epi-cancel").addEventListener("click",function(){
+  document.getElementById("epimodal").classList.remove("on");
+  var prev=ld("or","GB");myC=(prev!=="KP"&&findC(prev))||findC("GB");
+  orinp.value=myC.flag+"  "+myC.name;document.getElementById("orlbl").textContent="// your origin: "+myC.flag+" "+myC.name;
+});
+
+// ── PRESENCE ──
+var pref=db.ref("presence/"+uid);pref.set({online:true,ts:Date.now()});pref.onDisconnect().remove();
+db.ref("presence").on("value",function(s){document.getElementById("soulcount").textContent=s.exists()?Object.keys(s.val()).length:0;});
+
+// ── BAN CHECK ──
+db.ref("bans/"+uid).once("value").then(function(s){
+  if(s.exists()&&s.val().banned){
+    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#020005;font-family:VT323,monospace;font-size:2rem;color:#ff3a3a;text-align:center;padding:20px;flex-direction:column;gap:16px;">👁<br>YOU HAVE BEEN BANNED FROM THE VOID<br><span style="font-size:1rem;color:#6a4a9a">your signal has been permanently severed</span></div>';
+  }
+});
+
+// ── ENTER ──
+document.getElementById("enterbtn").addEventListener("click",enter);
+function enter(){
+  pg("queue");
+  db.ref("queue").once("value").then(function(s){
+    var matched=false;
+    if(s.exists()){
+      var q=s.val();
+      for(var wid in q){
+        if(wid===uid)continue;
+        var w=q[wid];
+        var iw=matC==="ANY"||(w.country&&matC===w.country.code);
+        var tw=(w.matchCountry||"ANY")==="ANY"||(w.matchCountry===myC.code);
+        if(!iw||!tw)continue;
+        matched=true;peerId=wid;peerC=w.country;peerU=w.username||"";
+        db.ref("queue/"+wid).remove();
+        var sr=db.ref("sessions").push();
+        var sd={};sd[uid]={country:myC,username:myU};sd[wid]={country:peerC,username:peerU};sd.created=Date.now();
+        sr.set(sd).then(function(){sesId=sr.key;startChat();});break;
+      }
+    }
+    if(!matched){
+      qref=db.ref("queue/"+uid);qref.set({country:myC,matchCountry:matC,username:myU,ts:Date.now()});qref.onDisconnect().remove();
+      sesLis=db.ref("sessions").on("value",function(s){
+        if(!s.exists())return;var ss=s.val();
+        for(var sid in ss){var d=ss[sid];var ks=Object.keys(d).filter(function(k){return k!=="created";});
+          if(ks.indexOf(uid)!==-1){db.ref("sessions").off("value",sesLis);sesId=sid;peerId=ks.filter(function(k){return k!==uid;})[0];
+            var pd=d[peerId];peerC=pd&&pd.country?pd.country:pd;peerU=(pd&&pd.username)||"";startChat();return;}
+        }
+      });
+    }
+  });
+}
+
+function startChat(){
+  document.getElementById("pflag").textContent=peerC&&peerC.flag||"👁";
+  document.getElementById("pname").textContent=dname(peerU,peerC);
+  document.getElementById("msgs").innerHTML='<div class="sysmsg">// you have found each other in the dark</div>';
+  hist=[];pg("chat");
+  db.ref("sessions/"+sesId+"/messages").on("child_added",function(s){addMsg(s.val(),"msgs");});
+  db.ref("sessions/"+sesId+"/typing/"+peerId).on("value",function(s){document.getElementById("typing").classList[s.exists()&&s.val()?"add":"remove"]("on");});
+  db.ref("sessions/"+sesId).on("value",function(s){if(!s.exists()){var el=document.getElementById("pstatus");el.textContent="// they dissolved back into the void";el.style.color="#ff3a3a";}});
+}
+
+function addMsg(msg,cont){
+  var me=msg.uid===uid;var t=filt(msg.text);
+  var flag=me?(myC&&myC.flag||"👁"):(peerC&&peerC.flag||"👁");
+  var sn=me?(myU||"you"):(peerU||"stranger");
+  var time=ts();
+  var div=document.createElement("div");div.className="msg "+(me?"me":"them");
+  div.innerHTML='<div class="mmeta"><span class="mflag">'+flag+'</span><span class="msender">'+esc(sn)+'</span></div><span>'+esc(t)+'</span><span class="mtime">'+time+'</span>';
+  var c=document.getElementById(cont);c.appendChild(div);c.scrollTop=c.scrollHeight;
+  if(cont==="msgs"){hist.push({uid:msg.uid,text:t,mine:me});if(hist.length>20)hist.shift();}
+}
+
+document.getElementById("sendbtn").addEventListener("click",send);
+document.getElementById("cinp").addEventListener("keydown",function(e){if(e.key==="Enter")send();else sett(true);});
+document.getElementById("cinp").addEventListener("blur",function(){sett(false);});
+function send(){var i=document.getElementById("cinp");var t=i.value.trim();if(!t||!sesId)return;i.value="";sett(false);db.ref("sessions/"+sesId+"/messages").push({uid:uid,text:filt(t),ts:Date.now()});}
+function sett(v){if(!sesId)return;clearTimeout(ttimer);db.ref("sessions/"+sesId+"/typing/"+uid).set(v);if(v)ttimer=setTimeout(function(){sett(false);},3000);}
+
+document.getElementById("dmbtn").addEventListener("click",function(){if(!peerId)return;var did=[uid,peerId].sort().join("__");actDm={id:peerId,country:peerC,username:peerU,dmId:did};openDmConvo(actDm);});
+document.getElementById("leavebtn").addEventListener("click",leave);
+function leave(){if(sesId){db.ref("sessions/"+sesId).remove();sesId=null;}if(qref){qref.remove();qref=null;}peerId=null;peerC=null;peerU=null;pg("landing");}
+document.getElementById("qcancelbtn").addEventListener("click",function(){if(qref){qref.remove();qref=null;}db.ref("sessions").off("value",sesLis);pg("landing");});
+
+// ── REPORT ──
+document.getElementById("reportbtn").addEventListener("click",function(){if(!peerId)return;document.getElementById("report-txt").value="";document.getElementById("report-fb").textContent="";document.getElementById("reportmodal").classList.add("on");});
+document.getElementById("report-cancel").addEventListener("click",function(){document.getElementById("reportmodal").classList.remove("on");});
+document.getElementById("report-send").addEventListener("click",function(){
+  var r=document.getElementById("report-txt").value.trim();
+  var fb=document.getElementById("report-fb");
+  if(!r){fb.style.color="#ff3a3a";fb.textContent="// describe what happened";return;}
+  fb.style.color="#00ffcc";fb.textContent="// sending...";
+  // store report directly in firebase (for github pages — no server)
+  db.ref("reports").push({reportedUid:peerId,reporterUid:uid,message:r,context:hist.slice(-10),reportedCountry:peerC,reportedUsername:peerU||"",ts:Date.now(),status:"pending"}).then(function(){
+    fb.textContent="// report sent. thank you.";setTimeout(function(){document.getElementById("reportmodal").classList.remove("on");},1500);
+  }).catch(function(){fb.style.color="#ff3a3a";fb.textContent="// failed. try again.";});
+});
+
+// ── DM ──
+document.getElementById("dmopenbtn").addEventListener("click",openInbox);
+document.getElementById("dmbackbtn").addEventListener("click",function(){pg("landing");});
+document.getElementById("dmconvobackbtn").addEventListener("click",openInbox);
+function openInbox(){
+  pg("dminbox");var list=document.getElementById("dlist");list.innerHTML='<div class="empty">// scanning the void...</div>';
+  db.ref("dms").once("value").then(function(s){
+    list.innerHTML="";if(!s.exists()){list.innerHTML='<div class="empty">// no echoes yet</div>';return;}
+    var data=s.val();var found=false;
+    for(var did in data){
+      if(did.indexOf(uid)===-1)continue;found=true;
+      var conv=data[did];var msgs2=conv.messages?Object.values(conv.messages).sort(function(a,b){return b.ts-a.ts;}):[];var last=msgs2[0];
+      var parts=did.split("__");var oid=parts[0]===uid?parts[1]:parts[0];
+      var oc=(conv.countries&&conv.countries[oid])||{flag:"👁",name:"the void"};var ou=(conv.usernames&&conv.usernames[oid])||"";
+      var item=document.createElement("div");item.className="ditem";
+      item.innerHTML='<div style="font-size:1.4rem">'+(oc.flag||"👁")+'</div><div class="di"><div class="dn">'+esc(dname(ou,oc))+'</div><div class="dp">'+(last?esc(last.text.slice(0,45))+"...":"// silence")+'</div></div>';
+      (function(o,oc2,ou2,did2){item.addEventListener("click",function(){actDm={id:o,country:oc2,username:ou2,dmId:did2};openDmConvo(actDm);});})(oid,oc,ou,did);
+      list.appendChild(item);
+    }
+    if(!found)list.innerHTML='<div class="empty">// no echoes yet<br>// talk to someone first</div>';
+  });
+}
+function openDmConvo(peer){
+  document.getElementById("dmflag").textContent=peer.country&&peer.country.flag||"👁";
+  document.getElementById("dmname").textContent=dname(peer.username,peer.country);
+  var m=document.getElementById("dmmsgs");m.innerHTML="";pg("dmconvo");
+  var cu={};cu[uid]=myC;cu[peer.id]=peer.country;db.ref("dms/"+peer.dmId+"/countries").update(cu);
+  var un={};un[uid]=myU;un[peer.id]=peer.username||"";db.ref("dms/"+peer.dmId+"/usernames").update(un);
+  db.ref("dms/"+peer.dmId+"/messages").off();
+  db.ref("dms/"+peer.dmId+"/messages").on("child_added",function(s){
+    var msg=s.val();var me=msg.uid===uid;
+    var flag=me?(myC&&myC.flag||"👁"):(peer.country&&peer.country.flag||"👁");
+    var sn=me?(myU||"you"):(peer.username||"stranger");
+    var div=document.createElement("div");div.className="msg "+(me?"me":"them");
+    div.innerHTML='<div class="mmeta"><span class="mflag">'+flag+'</span><span class="msender">'+esc(sn)+'</span></div><span>'+esc(filt(msg.text))+'</span><span class="mtime">'+ts()+'</span>';
+    m.appendChild(div);m.scrollTop=m.scrollHeight;
+  });
+}
+document.getElementById("dmsendbtn").addEventListener("click",dmsend);
+document.getElementById("dminp").addEventListener("keydown",function(e){if(e.key==="Enter")dmsend();});
+function dmsend(){if(!actDm)return;var i=document.getElementById("dminp");var t=i.value.trim();if(!t)return;i.value="";db.ref("dms/"+actDm.dmId+"/messages").push({uid:uid,text:filt(t),ts:Date.now()});}
+
+setInterval(function(){db.ref("queue").once("value").then(function(s){var n=s.exists()?Object.keys(s.val()).length:0;document.getElementById("qcount").textContent=n?"("+n+" searching...)":"";});},3000);
+</script>
+</body>
+</html>
