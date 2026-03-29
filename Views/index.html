@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>talk to someone in the void</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👁</text></svg>"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-database-compat.min.js"></script>
 <style>
@@ -220,9 +221,9 @@ body.nk .btn{animation:nkt .12s infinite!important;}
   <div class="msgs" id="msgs"><div class="sysmsg">// you have found each other in the dark</div></div>
   <div class="typing off" id="typing">// composing... <div class="tdots"><span></span><span></span><span></span></div></div>
   <div class="cacts">
-    <button class="cyan" id="dmbtn" style="flex:.8;">💌 dm</button>
-    <button class="red" id="reportbtn" style="flex:.6;font-size:.85rem;">🚩 report</button>
-    <button class="red" id="leavebtn">disconnect</button>
+    <button class="cyan" id="dmbtn" style="flex:.8;background:rgba(0,255,204,.08);border:1px solid #00ffcc;color:#00ffcc;font-family:VT323,monospace;font-size:.95rem;letter-spacing:1px;cursor:pointer;border-radius:8px;padding:8px;">💌 dm</button>
+    <button class="red" id="reportbtn" style="flex:.6;background:rgba(255,58,58,.08);border:1px solid #ff3a3a;color:#ff3a3a;font-family:VT323,monospace;font-size:.85rem;letter-spacing:1px;cursor:pointer;border-radius:8px;padding:8px;">🚩 report</button>
+    <button class="red" id="leavebtn" style="flex:1;background:rgba(255,58,58,.08);border:1px solid #ff3a3a;color:#ff3a3a;font-family:VT323,monospace;font-size:.95rem;letter-spacing:1px;cursor:pointer;border-radius:8px;padding:8px;">disconnect</button>
   </div>
   <div class="cinput">
     <input type="text" id="cinp" placeholder="say something into the void..." maxlength="500"/>
