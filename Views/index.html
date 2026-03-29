@@ -248,6 +248,8 @@ body.nk .btn{animation:nkt .12s infinite!important;}
       <span class="cflag" id="dmflag"></span>
       <div class="cname" id="dmname"></div>
     </div>
+    <button id="blockbtn" style="margin-left:auto;padding:6px 14px;font-family:VT323,monospace;font-size:1rem;letter-spacing:1px;cursor:pointer;border-radius:6px;border:1px solid #ff3a3a;background:rgba(255,58,58,.08);color:#ff3a3a;">🚫 block</button>
+    <button id="dmreportbtn" style="margin-left:6px;padding:6px 14px;font-family:VT323,monospace;font-size:1rem;letter-spacing:1px;cursor:pointer;border-radius:6px;border:1px solid #ffaa00;background:rgba(255,170,0,.08);color:#ffaa00;">🚩 report</button>
   </div>
   <div class="msgs" id="dmmsgs"></div>
   <div class="cinput">
@@ -566,7 +568,11 @@ function openInbox(){
     list.innerHTML="";if(!s.exists()){list.innerHTML='<div class="empty">// no echoes yet</div>';return;}
     var data=s.val();var found=false;
     for(var did in data){
-      if(did.indexOf(uid)===-1)continue;found=true;
+      if(did.indexOf(uid)===-1)continue;
+      // skip blocked
+      var parts=did.split("__");var oid=parts[0]===uid?parts[1]:parts[0];
+      if(myBlocks.indexOf(oid)!==-1)continue;
+      found=true;
       var conv=data[did];var msgs2=conv.messages?Object.values(conv.messages).sort(function(a,b){return b.ts-a.ts;}):[];var last=msgs2[0];
       var parts=did.split("__");var oid=parts[0]===uid?parts[1]:parts[0];
       var oc=(conv.countries&&conv.countries[oid])||{flag:"👁",name:"the void"};var ou=(conv.usernames&&conv.usernames[oid])||"";
@@ -596,7 +602,19 @@ function openDmConvo(peer){
 }
 document.getElementById("dmsendbtn").addEventListener("click",dmsend);
 document.getElementById("dminp").addEventListener("keydown",function(e){if(e.key==="Enter")dmsend();});
-function dmsend(){if(!actDm)return;var i=document.getElementById("dminp");var t=i.value.trim();if(!t)return;i.value="";db.ref("dms/"+actDm.dmId+"/messages").push({uid:uid,text:filt(t),ts:Date.now()});}
+function dmsend(){
+  if(!actDm)return;
+  // check if blocked
+  db.ref("dms/"+actDm.dmId+"/blocked").once("value").then(function(s){
+    if(s.exists()&&s.val()[actDm.id]){
+      document.getElementById("dminp").value="";
+      document.getElementById("dminp").placeholder="// you have been blocked";
+      return;
+    }
+    var i=document.getElementById("dminp");var t=i.value.trim();if(!t)return;i.value="";
+    db.ref("dms/"+actDm.dmId+"/messages").push({uid:uid,text:filt(t),ts:Date.now()});
+  });
+}
 
 setInterval(function(){db.ref("queue").once("value").then(function(s){var n=s.exists()?Object.keys(s.val()).length:0;document.getElementById("qcount").textContent=n?"("+n+" searching...)":"";});},3000);
 </script>
