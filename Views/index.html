@@ -258,6 +258,19 @@ body.nk .btn{animation:nkt .12s infinite!important;}
   </div>
 </div>
 
+<!-- DISCONNECT POPUP -->
+<div id="discpopup" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:400;background:rgba(10,0,20,.97);border:1px solid #ff3a3a;border-radius:10px;padding:24px 30px;text-align:center;box-shadow:0 0 40px rgba(255,58,58,.3);">
+  <div style="font-size:2rem;margin-bottom:8px;">👁</div>
+  <div style="font-family:VT323,monospace;font-size:1.6rem;color:#ff3a3a;margin-bottom:6px;letter-spacing:2px;">STRANGER HAS LEFT THE VOID</div>
+  <div style="font-size:.7rem;color:#6a4a9a;margin-bottom:16px;">// the connection has been severed</div>
+  <div style="display:flex;gap:8px;justify-content:center;">
+    <button id="disc-dm" style="padding:8px 18px;font-family:VT323,monospace;font-size:1.1rem;letter-spacing:1px;cursor:pointer;border-radius:6px;border:1px solid #00ffcc;background:rgba(0,255,204,.08);color:#00ffcc;">💌 dm them</button>
+    <button id="disc-new" style="padding:8px 18px;font-family:VT323,monospace;font-size:1.1rem;letter-spacing:1px;cursor:pointer;border-radius:6px;border:1px solid #7b2fff;background:rgba(123,47,255,.15);color:#e0d0ff;">find another</button>
+    <button id="disc-leave" style="padding:8px 18px;font-family:VT323,monospace;font-size:1.1rem;letter-spacing:1px;cursor:pointer;border-radius:6px;border:1px solid #ff3a3a;background:rgba(255,58,58,.08);color:#ff3a3a;">leave void</button>
+  </div>
+</div>
+<div id="discoverlay" style="display:none;position:fixed;inset:0;z-index:399;background:rgba(0,0,0,.5);"></div>
+
 <div id="souls">👁 <span id="soulcount">?</span> souls in the void</div>
 <div id="footer">🛡️ <strong style="color:#7b5aaa">Talk to Someone in the Void</strong> prohibits illegal content, nudity, harassment and content involving minors. No personal data stored. <strong style="color:#7b5aaa">13+</strong> only. ⚠️ Off-platform interactions are entirely at your own risk.</div>
 
@@ -514,7 +527,36 @@ function startChat(){
   hist=[];pg("chat");
   db.ref("sessions/"+sesId+"/messages").on("child_added",function(s){addMsg(s.val(),"msgs");});
   db.ref("sessions/"+sesId+"/typing/"+peerId).on("value",function(s){document.getElementById("typing").classList[s.exists()&&s.val()?"add":"remove"]("on");});
-  db.ref("sessions/"+sesId).on("value",function(s){if(!s.exists()){var el=document.getElementById("pstatus");el.textContent="// they dissolved back into the void";el.style.color="#ff3a3a";}});
+  db.ref("sessions/"+sesId).on("value",function(s){
+    if(!s.exists()){
+      var el=document.getElementById("pstatus");
+      el.textContent="// they dissolved back into the void";
+      el.style.color="#ff3a3a";
+      // show popup
+      document.getElementById("discpopup").style.display="block";
+      document.getElementById("discoverlay").style.display="block";
+    }
+  });
+}
+
+function hideDiscPopup(){
+  document.getElementById("discpopup").style.display="none";
+  document.getElementById("discoverlay").style.display="none";
+}
+
+document.getElementById("disc-dm").addEventListener("click",function(){
+  hideDiscPopup();
+  if(!peerId)return;
+  var did=[uid,peerId].sort().join("__");
+  actDm={id:peerId,country:peerC,username:peerU,dmId:did};
+  openDmConvo(actDm);
+});
+document.getElementById("disc-new").addEventListener("click",function(){
+  hideDiscPopup();leave();setTimeout(enter,100);
+});
+document.getElementById("disc-leave").addEventListener("click",function(){
+  hideDiscPopup();leave();
+});
 }
 
 function addMsg(msg,cont){
@@ -604,16 +646,8 @@ document.getElementById("dmsendbtn").addEventListener("click",dmsend);
 document.getElementById("dminp").addEventListener("keydown",function(e){if(e.key==="Enter")dmsend();});
 function dmsend(){
   if(!actDm)return;
-  // check if blocked
-  db.ref("dms/"+actDm.dmId+"/blocked").once("value").then(function(s){
-    if(s.exists()&&s.val()[actDm.id]){
-      document.getElementById("dminp").value="";
-      document.getElementById("dminp").placeholder="// you have been blocked";
-      return;
-    }
-    var i=document.getElementById("dminp");var t=i.value.trim();if(!t)return;i.value="";
-    db.ref("dms/"+actDm.dmId+"/messages").push({uid:uid,text:filt(t),ts:Date.now()});
-  });
+  var i=document.getElementById("dminp");var t=i.value.trim();if(!t)return;i.value="";
+  db.ref("dms/"+actDm.dmId+"/messages").push({uid:uid,text:filt(t),ts:Date.now()});
 }
 
 setInterval(function(){db.ref("queue").once("value").then(function(s){var n=s.exists()?Object.keys(s.val()).length:0;document.getElementById("qcount").textContent=n?"("+n+" searching...)":"";});},3000);
